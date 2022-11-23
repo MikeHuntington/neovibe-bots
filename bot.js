@@ -12,7 +12,7 @@ let parser = new Parser();
     api_url: `${process.env.MASTODON_API_URL}`,
   });
 
-  let feed = await parser.parseURL("http://feeds.feedburner.com/ign/games-all");
+  let feed = await parser.parseURL("https://eurogamer.net/?format=rss");
 
   let timeline = await M.get(
     `accounts/${process.env.MASTODON_ACCOUNT_ID}/statuses`,
@@ -20,12 +20,12 @@ let parser = new Parser();
   );
   var postDate = new Date(timeline.data[0].created_at);
 
-  feed.items.forEach((item) => {
+  feed.items.forEach(async (item) => {
     let pubDate = new Date(item.pubDate);
 
     if (pubDate > postDate) {
       M.post("statuses", {
-        status: `#${process.env.POST_PREFIX}:\n\n${item.title}\n\n${item.link}`,
+        status: `${item.title}\n\n#NeoVibe #${process.env.POST_HASHTAG}\n\n${item.link}`,
       });
     }
   });
