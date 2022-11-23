@@ -21,7 +21,7 @@ async function postFeed() {
     api_url: `${process.env.MASTODON_API_URL}`,
   });
 
-  let feed = await parser.parseURL("https://eurogamer.net/?format=rss");
+  let feed = await parser.parseURL("http://feeds.feedburner.com/ign/games-all");
 
   let timeline = await M.get(
     `accounts/${process.env.MASTODON_ACCOUNT_ID}/statuses`,
