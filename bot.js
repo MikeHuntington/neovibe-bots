@@ -11,7 +11,7 @@ let maxPostPerScan = process.env.MAX_POST_PER_SCAN;
 
   setInterval(async () => {
     await postFeed();
-  }, 20 * 60 * 1000);
+  }, 60 * 60 * 1000);
 })();
 
 async function postFeed() {
