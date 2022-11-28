@@ -31,12 +31,13 @@ async function postFeed() {
 
   let count = 0;
   feed.items.every(async (item) => {
-    if (count > maxPostPerScan) return false;
-
     let pubDate = new Date(item.pubDate);
 
     if (pubDate > postDate) {
       count++;
+
+      if (count > maxPostPerScan) return false;
+
       await M.post("statuses", {
         status: `${item.title}\n\n#NeoVibe #${process.env.POST_HASHTAG}\n\n${item.link}`,
       });
