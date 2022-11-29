@@ -17,6 +17,8 @@ let maxPostPerScan = process.env.MAX_POST_PER_SCAN;
 
 async function postFeed() {
   console.log("Running postFeed()");
+  console.log("ACCESS KEY: ", process.env.MASTODON_ACCESS_KEY);
+  console.log("API URL: ", process.env.MASTODON_API_URL);
   const M = new Mastodon({
     access_token: `${process.env.MASTODON_ACCESS_KEY}`,
     timeout_ms: 60 * 1000, // optional HTTP request timeout to apply to all requests.
