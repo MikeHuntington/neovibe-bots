@@ -7,6 +7,7 @@ let parser = new Parser();
 let maxPostPerScan = process.env.MAX_POST_PER_SCAN;
 
 (async () => {
+  console.log("Starting Bot");
   await postFeed();
 
   setInterval(async () => {
@@ -15,6 +16,7 @@ let maxPostPerScan = process.env.MAX_POST_PER_SCAN;
 })();
 
 async function postFeed() {
+  console.log("Running postFeed()");
   const M = new Mastodon({
     access_token: `${process.env.MASTODON_ACCESS_KEY}`,
     timeout_ms: 60 * 1000, // optional HTTP request timeout to apply to all requests.
