@@ -43,13 +43,13 @@ async function postFeed() {
 
         if (count > maxPostPerScan) return false;
 
-        await M.post("statuses", {
+        let posts = await M.post("statuses", {
           status: `${item.title}\n\n#NeoVibe #${process.env.POST_HASHTAG}\n\n${item.link}`,
         });
-        return true;
+        return posts;
       }
 
-      return true;
+      return false;
     })
   );
 
