@@ -31,23 +31,27 @@ async function postFeed() {
     `accounts/${process.env.MASTODON_ACCOUNT_ID}/statuses`,
     {}
   );
-  var postDate = new Date(timeline.data[0].created_at);
+  let postDate = new Date(timeline.data[0].created_at);
 
   let count = 0;
-  feed.items.every(async (item) => {
-    let pubDate = new Date(item.pubDate);
+  await Promise.all(
+    feed.items.every(async (item) => {
+      let pubDate = new Date(item.pubDate);
 
-    if (pubDate > postDate) {
-      count++;
+      if (pubDate > postDate) {
+        count++;
 
-      if (count > maxPostPerScan) return false;
+        if (count > maxPostPerScan) return false;
 
-      await M.post("statuses", {
-        status: `${item.title}\n\n#NeoVibe #${process.env.POST_HASHTAG}\n\n${item.link}`,
-      });
+        await M.post("statuses", {
+          status: `${item.title}\n\n#NeoVibe #${process.env.POST_HASHTAG}\n\n${item.link}`,
+        });
+        return true;
+      }
+
       return true;
-    }
+    })
+  );
 
-    return true;
-  });
+  return true;
 }
