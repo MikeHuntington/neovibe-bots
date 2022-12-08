@@ -34,24 +34,22 @@ async function postFeed() {
   let postDate = new Date(timeline.data[0].created_at);
 
   let count = 0;
-  let feedResults = await Promise.all(
-    feed.items.every(async (item) => {
-      let pubDate = new Date(item.pubDate);
+  feed.items.every(async (item) => {
+    let pubDate = new Date(item.pubDate);
 
-      if (pubDate > postDate) {
-        count++;
+    if (pubDate > postDate) {
+      count++;
 
-        if (count > maxPostPerScan) return false;
+      if (count > maxPostPerScan) return false;
 
-        let posts = await M.post("statuses", {
-          status: `${item.title}\n\n#NeoVibe #${process.env.POST_HASHTAG}\n\n${item.link}`,
-        });
-        return posts;
-      }
+      await M.post("statuses", {
+        status: `${item.title}\n\n#NeoVibe #${process.env.POST_HASHTAG}\n\n${item.link}`,
+      });
+      return true;
+    }
 
-      return false;
-    })
-  );
+    return true;
+  });
 
-  return feedResults;
+  return true;
 }
