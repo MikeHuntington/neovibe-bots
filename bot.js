@@ -34,7 +34,7 @@ async function postFeed() {
   let postDate = new Date(timeline.data[0].created_at);
 
   let count = 0;
-  await Promise.all(
+  let feedResults = await Promise.all(
     feed.items.every(async (item) => {
       let pubDate = new Date(item.pubDate);
 
@@ -53,5 +53,5 @@ async function postFeed() {
     })
   );
 
-  return true;
+  return feedResults;
 }
