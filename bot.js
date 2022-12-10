@@ -1,10 +1,27 @@
 if (process.env.NODE_ENV !== "production") {
   require("dotenv").config();
 }
+var fs = require("fs");
+const axios = require("axios");
+const urlMetadata = require("url-metadata");
 let Mastodon = require("mastodon-api");
 let Parser = require("rss-parser");
 let parser = new Parser();
 let maxPostPerScan = process.env.MAX_POST_PER_SCAN;
+
+const download_image = (url, image_path) =>
+  axios({
+    url,
+    responseType: "stream",
+  }).then(
+    (response) =>
+      new Promise((resolve, reject) => {
+        response.data
+          .pipe(fs.createWriteStream(image_path))
+          .on("finish", () => resolve())
+          .on("error", (e) => reject(e));
+      })
+  );
 
 (async () => {
   console.log("Starting Bot");
@@ -42,8 +59,18 @@ async function postFeed() {
 
       if (count > maxPostPerScan) return false;
 
+      let metadata = await urlMetadata(item.link);
+
+      // Download feed item image
+      await download_image(metadata.image, "post-image");
+
+      let mediaup = await M.post("media", {
+        file: fs.createReadStream(item.guid),
+      });
+
       await M.post("statuses", {
         status: `${item.title}\n\n#NeoVibe #${process.env.POST_HASHTAG}\n\n${item.link}`,
+        media_ids: [mediaup.data.id],
       });
       return true;
     }
