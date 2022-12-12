@@ -11,17 +11,17 @@ let Parser = require("rss-parser");
 let parser = new Parser();
 let maxPostPerScan = process.env.MAX_POST_PER_SCAN;
 
-const download_image = (url, image_path) => {
-  return axios({
+const download_image = async (url, image_path) => {
+  let response = await axios({
     url,
     responseType: "stream",
-  }).then((response) => {
-    return new Promise((resolve, reject) => {
-      response.data
-        .pipe(fs.createWriteStream(image_path))
-        .on("finish", () => resolve())
-        .on("error", (e) => reject(e));
-    });
+  });
+
+  return new Promise((resolve, reject) => {
+    response.data
+      .pipe(fs.createWriteStream(image_path))
+      .on("finish", () => resolve())
+      .on("error", (e) => reject(e));
   });
 };
 
@@ -56,7 +56,7 @@ async function postFeed() {
   feed.items.every(async (item) => {
     let pubDate = new Date(item.pubDate);
 
-    if (pubDate > postDate) {
+    if (pubDate < postDate) {
       let currentCount = ++count;
 
       if (currentCount > maxPostPerScan) return false;
@@ -79,6 +79,7 @@ async function postFeed() {
         status: `${item.title}\n\n#NeoVibe #${process.env.POST_HASHTAG}\n\n${item.link}`,
         media_ids: [mediaup.data.id],
       });
+
       return true;
     }
 
