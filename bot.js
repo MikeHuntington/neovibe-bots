@@ -2,6 +2,7 @@ if (process.env.NODE_ENV !== "production") {
   require("dotenv").config();
 }
 var fs = require("fs");
+const Path = require("path");
 const axios = require("axios");
 const urlMetadata = require("url-metadata");
 let Mastodon = require("mastodon-api");
@@ -62,10 +63,11 @@ async function postFeed() {
       let metadata = await urlMetadata(item.link);
 
       // Download feed item image
-      await download_image(metadata.image, "post-image");
+      let path = Path.resolve(__dirname, "images", "post-image");
+      await download_image(metadata.image, path);
 
       let mediaup = await M.post("media", {
-        file: fs.createReadStream(item.guid),
+        file: fs.createReadStream(path),
       });
 
       await M.post("statuses", {
