@@ -1,6 +1,7 @@
 if (process.env.NODE_ENV !== "production") {
   require("dotenv").config();
 }
+const http = require("http");
 var fs = require("fs");
 const Path = require("path");
 const axios = require("axios");
@@ -10,19 +11,19 @@ let Parser = require("rss-parser");
 let parser = new Parser();
 let maxPostPerScan = process.env.MAX_POST_PER_SCAN;
 
-const download_image = (url, image_path) =>
-  axios({
+const download_image = (url, image_path) => {
+  return axios({
     url,
     responseType: "stream",
-  }).then(
-    (response) =>
-      new Promise((resolve, reject) => {
-        response.data
-          .pipe(fs.createWriteStream(image_path))
-          .on("finish", () => resolve())
-          .on("error", (e) => reject(e));
-      })
-  );
+  }).then((response) => {
+    return new Promise((resolve, reject) => {
+      response.data
+        .pipe(fs.createWriteStream(image_path))
+        .on("finish", () => resolve())
+        .on("error", (e) => reject(e));
+    });
+  });
+};
 
 (async () => {
   console.log("Starting Bot");
@@ -56,14 +57,18 @@ async function postFeed() {
     let pubDate = new Date(item.pubDate);
 
     if (pubDate > postDate) {
-      count++;
+      let currentCount = ++count;
 
-      if (count > maxPostPerScan) return false;
+      if (currentCount > maxPostPerScan) return false;
 
       let metadata = await urlMetadata(item.link);
 
       // Download feed item image
-      let path = Path.resolve(__dirname, "images", "post-image");
+      let path = Path.resolve(
+        __dirname,
+        "images",
+        `post-image-${currentCount}`
+      );
       await download_image(metadata.image, path);
 
       let mediaup = await M.post("media", {
@@ -82,3 +87,11 @@ async function postFeed() {
 
   return true;
 }
+
+const requestListener = function (req, res) {
+  res.writeHead(200);
+  res.end("Hello, World!");
+};
+
+const server = http.createServer(requestListener);
+server.listen(8080);
