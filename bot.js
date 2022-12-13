@@ -26,7 +26,6 @@ const download_image = async (url, image_path) => {
 };
 
 (async () => {
-  console.log("Starting Bot");
   await postFeed();
 
   setInterval(async () => {
