@@ -17,12 +17,12 @@ const download_image = async (url, image_path) => {
     responseType: "stream",
   });
 
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve, reject) =>
     response.data
       .pipe(fs.createWriteStream(image_path))
-      .on("finish", () => resolve())
-      .on("error", (e) => reject(e));
-  });
+      .on("finish", () => resolve(true))
+      .on("error", (e) => reject(e))
+  );
 };
 
 (async () => {
@@ -36,8 +36,6 @@ const download_image = async (url, image_path) => {
 
 async function postFeed() {
   console.log("Running postFeed()");
-  console.log("ACCESS KEY: ", process.env.MASTODON_ACCESS_KEY);
-  console.log("API URL: ", process.env.MASTODON_API_URL);
   const M = new Mastodon({
     access_token: `${process.env.MASTODON_ACCESS_KEY}`,
     timeout_ms: 60 * 1000, // optional HTTP request timeout to apply to all requests.
@@ -69,18 +67,24 @@ async function postFeed() {
         "images",
         `post-image-${currentCount}`
       );
-      await download_image(metadata.image, path);
+      let isDownloaded = await download_image(metadata.image, path);
 
-      let mediaup = await M.post("media", {
-        file: fs.createReadStream(path),
+      let rstream = fs.createReadStream(path);
+      rstream.on("open", async (fd) => {
+        let mediaup = await M.post("media", {
+          file: rstream,
+        });
+
+        await M.post("statuses", {
+          status: `${item.title}\n\n#NeoVibe #${process.env.POST_HASHTAG}\n\n${item.link}`,
+          media_ids: [mediaup.data.id],
+        });
+
+        return true;
       });
-
-      await M.post("statuses", {
-        status: `${item.title}\n\n#NeoVibe #${process.env.POST_HASHTAG}\n\n${item.link}`,
-        media_ids: [mediaup.data.id],
+      rstream.on("error", (err) => {
+        // error on the stream
       });
-
-      return true;
     }
 
     return true;
