@@ -66,7 +66,7 @@ async function postFeed() {
         "images",
         `post-image-${currentCount}`
       );
-      let isDownloaded = await download_image(metadata.image, path);
+      await download_image(metadata.image, path);
 
       let rstream = fs.createReadStream(path);
       rstream.on("open", async (fd) => {
