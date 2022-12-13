@@ -56,7 +56,7 @@ async function postFeed() {
   feed.items.every(async (item) => {
     let pubDate = new Date(item.pubDate);
 
-    if (pubDate < postDate) {
+    if (pubDate > postDate) {
       let currentCount = ++count;
 
       if (currentCount > maxPostPerScan) return false;
