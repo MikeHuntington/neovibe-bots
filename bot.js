@@ -68,22 +68,15 @@ async function postFeed() {
       );
       await download_image(metadata.image, path);
 
-      let rstream = fs.createReadStream(path);
-      rstream.on("open", async (fd) => {
-        let mediaup = await M.post("media", {
-          file: rstream,
-        });
-
-        await M.post("statuses", {
-          status: `${item.title}\n\n#NeoVibe #${process.env.POST_HASHTAG}\n\n${item.link}`,
-          media_ids: [mediaup.data.id],
-        });
-
-        return true;
+      let mediaup = await M.post("media", {
+        file: fs.createReadStream(path),
       });
-      rstream.on("error", (err) => {
-        // error on the stream
+
+      await M.post("statuses", {
+        status: `${item.title}\n\n#NeoVibe #${process.env.POST_HASHTAG}\n\n${item.link}`,
+        media_ids: [mediaup.data.id],
       });
+      return true;
     }
 
     return true;
