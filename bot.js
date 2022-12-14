@@ -11,6 +11,12 @@ let Parser = require("rss-parser");
 let parser = new Parser();
 let maxPostPerScan = process.env.MAX_POST_PER_SCAN;
 
+const M = new Mastodon({
+  access_token: `${process.env.MASTODON_ACCESS_KEY}`,
+  timeout_ms: 60 * 1000, // optional HTTP request timeout to apply to all requests.
+  api_url: `${process.env.MASTODON_API_URL}`,
+});
+
 const download_image = async (url, image_path) => {
   let response = await axios({
     url,
@@ -32,38 +38,44 @@ const download_image = async (url, image_path) => {
 };
 
 (async () => {
-  await postFeed();
+  runBot();
 
   setInterval(async () => {
-    console.log("Starting postFeed()");
-    await postFeed();
-    console.log("Completed postFeed()");
+    await runBot();
   }, 60 * 60 * 1000);
 })();
 
-async function postFeed() {
-  const M = new Mastodon({
-    access_token: `${process.env.MASTODON_ACCESS_KEY}`,
-    timeout_ms: 60 * 1000, // optional HTTP request timeout to apply to all requests.
-    api_url: `${process.env.MASTODON_API_URL}`,
-  });
-
-  let feed = await parser.parseURL("http://feeds.feedburner.com/ign/games-all");
-
+async function getLastPostDate() {
   let timeline = await M.get(
     `accounts/${process.env.MASTODON_ACCOUNT_ID}/statuses`,
     {}
   );
   let postDate = new Date(timeline.data[0].created_at);
 
+  return postDate;
+}
+
+async function readFeeds() {
+  console.log("Processing Feeds: readFeeds()");
+  let feed = await parser.parseURL("http://feeds.feedburner.com/ign/games-all");
+  return feed;
+}
+
+async function processFeed(feed, postDate) {
   let count = 0;
-  return feed.items.every(async (item) => {
-    let pubDate = new Date(item.pubDate);
+  let validFeeds = feed.items
+    .filter(async (item) => {
+      let pubDate = new Date(item.pubDate);
 
-    if (pubDate > postDate) {
-      let currentCount = ++count;
+      if (pubDate > postDate) {
+        return item;
+      }
+    })
+    .slice(0, maxPostPerScan);
 
-      if (currentCount > maxPostPerScan) return false;
+  return Promise.all(
+    validFeeds.map(async (item) => {
+      let currentCount = count++;
 
       let metadata = await urlMetadata(item.link);
 
@@ -79,15 +91,28 @@ async function postFeed() {
         file: fs.createReadStream(path),
       });
 
-      await M.post("statuses", {
-        status: `${item.title}\n\n#NeoVibe #${process.env.POST_HASHTAG}\n\n${item.link}`,
+      return M.post("statuses", {
+        status: `${
+          item.contentSnippet ? item.contentSnippet : item.title
+        }\n\n#NeoVibe #${process.env.POST_HASHTAG}\n\n${item.link}`,
         media_ids: [mediaup.data.id],
       });
-      return true;
-    }
+    })
+  );
+}
 
-    return true;
-  });
+async function runBot() {
+  console.log("Running Bot: runBot()");
+
+  let feed = await readFeeds();
+
+  let postDate = await getLastPostDate();
+
+  let processedFeed = await processFeed(feed, postDate);
+
+  console.log("Completed Running Bot: runBot()");
+
+  return processedFeed;
 }
 
 const requestListener = function (req, res) {
