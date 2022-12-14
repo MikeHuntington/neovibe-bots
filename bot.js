@@ -46,6 +46,7 @@ const download_image = async (url, image_path) => {
 })();
 
 async function getLastPostDate() {
+  console.log("Getting Last Post Date: getLastPostDate()");
   let timeline = await M.get(
     `accounts/${process.env.MASTODON_ACCOUNT_ID}/statuses`,
     {}
@@ -87,18 +88,22 @@ async function processFeed(feed, postDate) {
       );
       await download_image(metadata.image, path);
 
-      let mediaup = await M.post("media", {
-        file: fs.createReadStream(path),
-      });
-
-      return M.post("statuses", {
-        status: `${
-          item.contentSnippet ? item.contentSnippet : item.title
-        }\n\n#NeoVibe #${process.env.POST_HASHTAG}\n\n${item.link}`,
-        media_ids: [mediaup.data.id],
-      });
+      return postFeedItem(path, item);
     })
   );
+}
+
+async function postFeedItem(path, item) {
+  let mediaup = await M.post("media", {
+    file: fs.createReadStream(path),
+  });
+
+  return M.post("statuses", {
+    status: `${item.title}\n\n${
+      item.contentSnippet ? "\n\n" + item.contentSnippet : ""
+    }\n\n#NeoVibe #${process.env.POST_HASHTAG}\n\n${item.link}`,
+    media_ids: [mediaup.data.id],
+  });
 }
 
 async function runBot() {
