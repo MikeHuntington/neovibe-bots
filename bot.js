@@ -29,12 +29,13 @@ const download_image = async (url, image_path) => {
   await postFeed();
 
   setInterval(async () => {
+    console.log("Running postFeed()");
     await postFeed();
+    console.log("Completed postFeed()");
   }, 60 * 60 * 1000);
 })();
 
 async function postFeed() {
-  console.log("Running postFeed()");
   const M = new Mastodon({
     access_token: `${process.env.MASTODON_ACCESS_KEY}`,
     timeout_ms: 60 * 1000, // optional HTTP request timeout to apply to all requests.
