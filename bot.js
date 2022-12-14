@@ -29,7 +29,7 @@ const download_image = async (url, image_path) => {
   await postFeed();
 
   setInterval(async () => {
-    console.log("Running postFeed()");
+    console.log("Starting postFeed()");
     await postFeed();
     console.log("Completed postFeed()");
   }, 60 * 60 * 1000);
@@ -51,7 +51,7 @@ async function postFeed() {
   let postDate = new Date(timeline.data[0].created_at);
 
   let count = 0;
-  feed.items.every(async (item) => {
+  return feed.items.every(async (item) => {
     let pubDate = new Date(item.pubDate);
 
     if (pubDate > postDate) {
@@ -82,8 +82,6 @@ async function postFeed() {
 
     return true;
   });
-
-  return true;
 }
 
 const requestListener = function (req, res) {
