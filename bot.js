@@ -65,12 +65,9 @@ async function readFeeds() {
 async function processFeed(feed, postDate) {
   let count = 0;
   let validFeeds = feed.items
-    .filter(async (item) => {
+    .filter((item) => {
       let pubDate = new Date(item.pubDate);
-
-      if (pubDate > postDate) {
-        return item;
-      }
+      return pubDate > postDate;
     })
     .slice(0, maxPostPerScan);
 
