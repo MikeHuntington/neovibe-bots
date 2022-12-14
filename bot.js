@@ -20,8 +20,14 @@ const download_image = async (url, image_path) => {
   return new Promise((resolve, reject) =>
     response.data
       .pipe(fs.createWriteStream(image_path))
-      .on("finish", () => resolve(true))
-      .on("error", (e) => reject(e))
+      .on("finish", () => {
+        console.log("---- Image Written Succesfully");
+        resolve(true);
+      })
+      .on("error", (e) => {
+        console.log("---- Image Written Failure");
+        reject(e);
+      })
   );
 };
 
