@@ -8,7 +8,11 @@ const axios = require("axios");
 const urlMetadata = require("url-metadata");
 let Mastodon = require("mastodon-api");
 let Parser = require("rss-parser");
-let parser = new Parser();
+let parser = new Parser({
+  headers: {
+    Accept: "application/rss+xml, application/xml",
+  },
+});
 let maxPostPerScan = process.env.MAX_POST_PER_SCAN;
 
 const M = new Mastodon({
@@ -19,15 +23,18 @@ const M = new Mastodon({
 
 const download_image = async (url, image_path) => {
   let response = await axios({
+    method: "get",
     url,
     responseType: "stream",
   });
+
+  console.log(response);
 
   return new Promise((resolve, reject) =>
     response.data
       .pipe(fs.createWriteStream(image_path))
       .on("finish", () => {
-        console.log("---- Image Written Succesfully");
+        console.log("---- Image Written Succesfully", url);
         resolve(true);
       })
       .on("error", (e) => {
@@ -42,7 +49,7 @@ const download_image = async (url, image_path) => {
 
   setInterval(async () => {
     await runBot();
-  }, 60 * 60 * 1000);
+  }, process.env.FEED_INTERVAL);
 })();
 
 async function getLastPostDate() {
@@ -58,49 +65,59 @@ async function getLastPostDate() {
 
 async function readFeeds() {
   console.log("Processing Feeds: readFeeds()");
-  let feed = await parser.parseURL("http://feeds.feedburner.com/ign/games-all");
-  return feed;
+  let feeds = JSON.parse(process.env.FEEDS || {});
+  let feed = await parser.parseURL(feeds.feeds[0].url);
+  return { feed, isNews: feeds.feeds[0] };
 }
 
-async function processFeed(feed, postDate) {
+async function processFeed(feed, postDate, feedOptions) {
   let count = 0;
   let validFeeds = feed.items
     .filter((item) => {
       let pubDate = new Date(item.pubDate);
-      return pubDate > postDate;
+      return pubDate < postDate;
     })
     .slice(0, maxPostPerScan);
 
   return Promise.all(
     validFeeds.map(async (item) => {
-      let currentCount = count++;
+      let path;
 
-      let metadata = await urlMetadata(item.link);
+      if (feedOptions.isNews) {
+        let currentCount = count++;
 
-      // Download feed item image
-      let path = Path.resolve(
-        __dirname,
-        "images",
-        `post-image-${currentCount}`
-      );
-      await download_image(metadata.image, path);
+        let metadata = await urlMetadata(item.link);
 
-      return postFeedItem(path, item);
+        // Download feed item image
+        path = Path.resolve(__dirname, "images", `post-image-${currentCount}`);
+        await download_image(metadata.image, path);
+      }
+
+      return postFeedItem(path, item, feedOptions);
     })
   );
 }
 
-async function postFeedItem(path, item) {
-  let mediaup = await M.post("media", {
-    file: fs.createReadStream(path),
-  });
+async function postFeedItem(path, item, feedOptions) {
+  if (feedOptions.isNews) {
+    let mediaup = await M.post("media", {
+      file: fs.createReadStream(path),
+    });
 
-  return M.post("statuses", {
-    status: `${item.title}\n\n${
-      item.contentSnippet ? "\n\n" + item.contentSnippet : ""
-    }\n\n#NeoVibe #${process.env.POST_HASHTAG}\n\n${item.link}`,
-    media_ids: [mediaup.data.id],
-  });
+    return M.post("statuses", {
+      status: `${feedOptions.tag}: ${item.title}\n\n${
+        item.contentSnippet ? "\n\n" + item.contentSnippet : ""
+      }\n\n#NeoVibe ${getHashTags()}\n\n${item.link}`,
+      media_ids: [mediaup.data.id],
+    });
+  } else {
+    return M.post("statuses", {
+      status: `${feedOptions.tag}: ${
+        item.title
+      }\n\n#NeoVibe ${getHashTags()}\n\n${item.link}`,
+      media_ids: [],
+    });
+  }
 }
 
 async function runBot() {
@@ -110,11 +127,21 @@ async function runBot() {
 
   let postDate = await getLastPostDate();
 
-  let processedFeed = await processFeed(feed, postDate);
+  let processedFeed = await processFeed(feed.feed, postDate, feed.isNews);
 
   console.log("Completed Running Bot: runBot()");
 
   return processedFeed;
+}
+
+function getHashTags() {
+  let hashTags = process.env.POST_HASHTAG.split(",")
+    .map((hashtag) => {
+      return `#${hashtag}`;
+    })
+    .join(" ");
+
+  return hashTags;
 }
 
 const requestListener = function (req, res) {
