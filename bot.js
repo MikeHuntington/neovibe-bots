@@ -75,7 +75,7 @@ async function processFeed(feed, postDate, feedOptions) {
   let validFeeds = feed.items
     .filter((item) => {
       let pubDate = new Date(item.pubDate);
-      return pubDate < postDate;
+      return pubDate > postDate;
     })
     .slice(0, maxPostPerScan);
 
